@@ -58,6 +58,26 @@ namespace Systic::System::Concurrency {
             std::lock_guard<std::mutex> lock(mtx);
             return data;
         }
+
+        /**
+         * @brief Manipulate the data within an Exclusive Write Access.
+         * @complexity O(Func) + Unique Lock Overhead.
+         */
+        template <typename Func>
+        auto executeCallbackInWriteMode(Func&& func) {
+            std::unique_lock lock(_mtx);
+            return func(_data);
+        }
+
+        /**
+         * @brief Manipulate the data within a Shared Read Access.
+         * @complexity O(Func) + Shared Lock Overhead.
+         */
+        template <typename Func>
+        auto executeCallbackInReadMode(Func&& func) const {
+            std::shared_lock lock(_mtx);
+            return func(_data);
+        }
     };
 
     /**
