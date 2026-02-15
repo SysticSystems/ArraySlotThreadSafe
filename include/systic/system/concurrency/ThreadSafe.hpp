@@ -1,17 +1,6 @@
-/**
- * @file ThreadSafe.hpp
- * @namespace Systic::System::Concurrency
- * @brief Deadlock-Immune Artifact Wrapper (Value Semantics Edition)
- * * DESIGN PHILOSOPHY:
- * 1. Hardware-Aware: Uses Atomic "Single-Grip" for primitives.
- * 2. Mutex-Guarded: Uses "Privacy Curtains" for complex/large data (>16 bytes).
- * 3. Deadlock-Proof: Deletes operator= to prevent circular wait dependencies.
- * 4. Cache-Optimized: Aligned to 64-byte boundaries to prevent False Sharing.
- */
-
 #pragma once
-
 #include <mutex>
+#include <shared_mutex>
 #include <atomic>
 #include <type_traits>
 
@@ -26,9 +15,9 @@ namespace Systic::System::Concurrency {
      */
     template <typename T, typename = void>
     class alignas(64) ThreadSafe {
-    private:
+    protected:
         T data;
-        mutable std::mutex mtx;
+        mutable std::shared_mutex mtx; // Changed from std::mutex to std::shared_mutex
 
     public:
         // Constructor: Initial state
@@ -41,7 +30,7 @@ namespace Systic::System::Concurrency {
          * deadlock-proof because it never holds two active locks.
          */
         ThreadSafe(const ThreadSafe& other) {
-            std::lock_guard<std::mutex> lock(other.mtx);
+            std::unique_lock<std::shared_mutex> lock(other.mtx); // Explicit template argument
             data = other.data;
         }
 
@@ -55,7 +44,7 @@ namespace Systic::System::Concurrency {
 
         // Returns a safe snapshot of the data
         T get() const {
-            std::lock_guard<std::mutex> lock(mtx);
+            std::shared_lock<std::shared_mutex> lock(mtx); // Shared lock for read
             return data;
         }
 
@@ -65,8 +54,8 @@ namespace Systic::System::Concurrency {
          */
         template <typename Func>
         auto executeCallbackInWriteMode(Func&& func) {
-            std::unique_lock lock(_mtx);
-            return func(_data);
+            std::unique_lock<std::shared_mutex> lock(mtx); // Exclusive lock
+            return func(data);
         }
 
         /**
@@ -75,8 +64,8 @@ namespace Systic::System::Concurrency {
          */
         template <typename Func>
         auto executeCallbackInReadMode(Func&& func) const {
-            std::shared_lock lock(_mtx);
-            return func(_data);
+            std::shared_lock<std::shared_mutex> lock(mtx); // Shared lock
+            return func(data);
         }
     };
 
@@ -90,23 +79,23 @@ namespace Systic::System::Concurrency {
     template <typename T>
     class alignas(std::atomic<T>::is_always_lock_free ? alignof(std::atomic<T>) : 64)
     ThreadSafe<T, typename std::enable_if<std::is_arithmetic<T>::value || std::is_pointer<T>::value>::type> {
-    private:
-        std::atomic<T> data;
+        private:
+            std::atomic<T> data;
 
-    public:
-        explicit ThreadSafe(T val) : data(val) {}
+        public:
+            explicit ThreadSafe(T val) : data(val) {}
 
-        // Atomics handle their own memory ordering
-        ThreadSafe(const ThreadSafe& other) : data(other.data.load(std::memory_order_relaxed)) {}
+            // Atomics handle their own memory ordering
+            ThreadSafe(const ThreadSafe& other) : data(other.data.load(std::memory_order_relaxed)) {}
 
-        // Maintain the "No-Shit" rule (No assignment)
-        ThreadSafe& operator=(const ThreadSafe&) = delete;
+            // Maintain the "No-Shit" rule (No assignment)
+            ThreadSafe& operator=(const ThreadSafe&) = delete;
 
-        // Direct hardware-load
-        T get() const { return data.load(std::memory_order_relaxed); }
+            // Direct hardware-load
+            T get() const { return data.load(std::memory_order_relaxed); }
 
-        // Implicit conversion for "Invisible" usage in logic
-        operator T() const { return get(); }
+            // Implicit conversion for "Invisible" usage in logic
+            operator T() const { return get(); }
     };
 
-} // namespace Systic::Tools::Concurrency
+} // namespace Systic::System::Concurrency
