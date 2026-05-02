@@ -3,7 +3,7 @@
 #include "StressLevel.hpp"
 
 namespace Systic::System::Concurrency::Test {
-    struct SlotThreadSafeTestNameGenerator {
+    struct StressTestNameGenerator {
         template <typename T>
         static std::string GetName(int i) {
             std::string stressStr;
@@ -15,11 +15,10 @@ namespace Systic::System::Concurrency::Test {
                 default:                     stressStr = "LVL_UNKNOWN"; break;
             }
 
-            // Format: StressLevel_ArraySize_DataSize
-            // Example: NO_STRESS_64_512
+            // Format: {StressLevel}__ArraySize({size})__DataSize({size})
             return stressStr +
-                   "__ArraySize_" + std::to_string(T::arraySize) +
-                   "__DataSize_" + std::to_string(T::slotSize);
+                   "__ArraySize(" + std::to_string(T::arraySize) + ')' +
+                   "__DataSize(" + std::to_string(T::slotSize) + ')';
         }
     };
 }

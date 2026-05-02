@@ -1,10 +1,10 @@
 #pragma once
 #include "StressLevel.hpp"
-
+#include "TestSlot.hpp"
 
 namespace Systic::System::Concurrency::Test {
     template <std::size_t ARRAY_SIZE, std::size_t SLOT_SIZE, StressLevel LEVEL>
-    struct SlotThreadSafePressureParam {
+    struct StressTestParam {
         static constexpr std::size_t arraySize = ARRAY_SIZE;
         static constexpr std::size_t slotSize = SLOT_SIZE;
         static constexpr StressLevel stress = LEVEL;

@@ -1,12 +1,13 @@
 #pragma once
 #include <string>
-#include "./TestSlot.hpp"
+#include "../TestSlot.hpp"
+#include "../StressTestOperatorInterface.hpp"
 
 import Systic.System.Concurrency;
 
 namespace Systic::System::Concurrency::Test {
     template <std::size_t ARRAY_SIZE, std::size_t SLOT_SIZE>
-    class SlotThreadSafeOperationsTest {
+    class SlotThreadSafeTestOperator : public StressTestOperatorInterface<SLOT_SIZE> {
 
         private:
             std::unique_ptr<SlotThreadSafe<TestSlot<SLOT_SIZE>>> safeArray = std::make_unique<SlotThreadSafe<TestSlot<SLOT_SIZE>>>(ARRAY_SIZE);
@@ -34,30 +35,30 @@ namespace Systic::System::Concurrency::Test {
              *
              * @param slot
              */
-            void assertAdd(const TestSlot<SLOT_SIZE>* slot) {
+            void assertAdd(TestSlot<SLOT_SIZE>* slot) override {
                 std::uint64_t idx = this->safeArray->add(slot);
                 bool status = this->isSlotExists(
                     *slot,
                     idx
                 );
+
                 ASSERT_TRUE(status) << "Could not find added item";
             }
 
             void assertOccupied(const std::uint64_t idx) {
-                bool isOccupied = this-safeArray->template peek<bool>(
+                bool isOccupied = this->safeArray->template peek<bool>(
                     idx,
-                    [](const TestSlot<SLOT_SIZE>* foundSlot, const std::uint64_t bitmaskSlot, const std::uint64_t mask) -> bool {
-                        return (bitmaskSlot & mask) != 0;
+                    [](const TestSlot<SLOT_SIZE>* foundSlot) -> bool {
+                        return foundSlot != nullptr;
                     }
                 );
-                ASSERT_TRUE(isOccupied) << "The thread safety control bit was not set to 1 for the slot at index " << idx;
+                ASSERT_TRUE(isOccupied) << "The slot was empty at index " << idx;
             }
             /**
              *
-             * @param arraySize
              */
-            void assertSize(const std::size_t arraySize) {
-                ASSERT_EQ(arraySize, this->safeArray->size()) << "Array size mismatch";
+            void assertSize() override {
+                ASSERT_EQ(ARRAY_SIZE, *this->safeArray->getSize()) << "Array size mismatch";
             }
 
             /**
@@ -65,7 +66,7 @@ namespace Systic::System::Concurrency::Test {
              * @param slots
              * @param numberOfSlots
              */
-            void assertSlotsExists(TestSlot<SLOT_SIZE>* slots, const size_t numberOfSlots) {
+            void assertSlotsExists(TestSlot<SLOT_SIZE>* slots, size_t numberOfSlots) override {
 
                 for (size_t idx = 0; idx < numberOfSlots; idx++) {
                     bool isFound = false;
@@ -94,26 +95,28 @@ namespace Systic::System::Concurrency::Test {
              * @param indexes
              * @param numberOfSlots
              */
-            void assetSlotsDeletedByIndex(std::uint64_t indexes[], std::size_t numberOfSlots) {
+            void assetSlotsDeletedByIndexes(std::uint64_t indexes[], std::size_t numberOfSlots) override {
                 for (std::size_t idx = 0; idx < numberOfSlots; idx++) {
                     assertDeleteAt(indexes[idx]);
                 }
             }
 
-            void assertInsertAt(const TestSlot<SLOT_SIZE>& slot, std::size_t idx) {
-                this->safeArray.insertAt(slot, idx);
+            void assertInsertAt(TestSlot<SLOT_SIZE>& slot, std::size_t idx) override {
+                this->safeArray->insertAt(&slot, idx);
 
-                ASSERT_TRUE(this->isSlotExists(*slot, idx)) << std::format(
+                ASSERT_TRUE(this->isSlotExists(slot, idx)) << std::format(
                     "Could not find slot inserted at {}",
                     idx
                 );
             }
 
-            void assertDeleteAt(const std::size_t idx) {
+            void assertDeleteAt(std::size_t idx) override {
                 this->safeArray->removeAt(idx);
                 ASSERT_TRUE(
                     this->isSlotDeleted(idx)
                 ) << std::format("Slot was not deleted at {}", idx);
             }
+
+            void assertDelete() override {}
     };
 }
