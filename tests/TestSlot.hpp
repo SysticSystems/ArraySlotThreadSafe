@@ -9,27 +9,28 @@ namespace Systic::System::Concurrency::Test {
         std::size_t size = SLOT_SIZE;
 
         TestSlot() {
+            static std::atomic<std::size_t> salt{0};
+            auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
             for (std::size_t i = 0; i < SLOT_SIZE; ++i) {
-                auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
-                this->array[i] = static_cast<uint8_t>(now & 0xFF);
+                this->array[i] = static_cast<uint8_t>((now + i + salt) & 0xFF);
             }
+            salt++;
         }
 
         bool operator==(const TestSlot &slot) const {
-            // Quick check for size
             if (this->size != slot.size) return false;
-
-            // Calculate how many 64-bit jumps we can make
             for (std::size_t i = 0; i < SLOT_SIZE; ++i) {
-                if (slot.array[i] != this->array[i]) {
-                    return false;
-                }
+                if (slot.array[i] != this->array[i]) return false;
             }
             return true;
         }
+
         TestSlot& operator=(const TestSlot& slot) {
-            if (&slot != this) {
-                this->array[0] = slot.array[0];
+            if (this != &slot) {
+                this->size = slot.size;
+                for (std::size_t i = 0; i < SLOT_SIZE; ++i) {
+                    this->array[i] = slot.array[i];
+                }
             }
             return *this;
         }

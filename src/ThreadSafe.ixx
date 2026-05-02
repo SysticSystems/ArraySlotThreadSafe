@@ -1,8 +1,8 @@
 module;
 
-// Ensure the compiler is actually C++26 ready
+// Ensure the compiler is actually C++23 ready
 #if __cplusplus < 202302L
-#error "This Systic Module requires C++26. Upgrade your compiler, Bully!"
+#error "This Systic Module requires C++23. Upgrade your compiler, Bully!"
 #endif
 
 #include <cstdint>

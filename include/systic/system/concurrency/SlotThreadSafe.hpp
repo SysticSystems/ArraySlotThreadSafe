@@ -279,6 +279,17 @@ namespace Systic::System::Concurrency {
                     (void) vacancySlot.fetch_and(~mask, std::memory_order_release);
                 });
             }
+
+            /**
+             * @MethodKind Cold
+             * Get the size of the array.
+             * @usage Internal : Use for unit testing only.
+             * @return The size of the array.
+             */
+            [[nodiscard]] const std::size_t *getSize() const {
+                return reinterpret_cast<const std::size_t*>(this->size);
+            }
+                
             #ifdef SYSTIC_RELEASE_WITH_DEBUG_INFO
                 /**
                  * @MethodKind Cold
@@ -303,14 +314,6 @@ namespace Systic::System::Concurrency {
                  * @return The vacancy array.
                  */
                 [[nodiscard]] const std::uint64_t *getVacancy() const;
-
-                /**
-                 * @MethodKind Cold
-                 * Get the size of the array.
-                 * @usage Internal : Use for unit testing only.
-                 * @return The size of the array.
-                 */
-                [[nodiscard]] const std::size_t *getSize() const;
 
                 friend std::ostream& operator<<(std::ostream& os, const SlotThreadSafe<T>& item) {
                     for (std::size_t i = 0; i < *item.getSize(); ++i) {
