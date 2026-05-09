@@ -25,6 +25,7 @@ namespace Systic::System::Concurrency::Test {
                 return this->safeArray->template peek<bool>(
                     idx,
                     [slot](const TestSlot<SLOT_SIZE>* foundSlot) -> bool {
+                       if (foundSlot == nullptr) return false;
                        return *foundSlot == slot;
                     }
                 );
