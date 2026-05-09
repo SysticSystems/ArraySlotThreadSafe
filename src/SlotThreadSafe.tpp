@@ -9,7 +9,7 @@ namespace Systic::System::Concurrency {
     SlotThreadSafe<T>::SlotThreadSafe(const std::size_t& size) {
         SlotThreadSafe<T>::validateArraySize(size);
         /**
-         * Metadata array hold size + contorl + vacancy memory
+         * Metadata array holds size + control + vacancy memory
          * Metadata size = 32bit + Size / 64  bit + Size / 64 bit.
          */
         const std::size_t numberOfBitmaskSlots = size >> 6;
@@ -58,7 +58,7 @@ namespace Systic::System::Concurrency {
         if (size < 64 || std::popcount(size) != 1) {
 
             throw std::invalid_argument(
-                std::format("Size must be 2^n and >= 64 and {} was provded. its just my rules, it sucks aint it !", size)
+                std::format("Size must be exactly a power of 2 and >= 64. But {} was provided.", size)
             );
         }
     }

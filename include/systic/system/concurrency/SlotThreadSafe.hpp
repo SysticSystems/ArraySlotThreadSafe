@@ -51,12 +51,12 @@ namespace Systic::System::Concurrency {
     class SlotThreadSafe {
         private:
             /**
-             *  Property that hold addresses of the real array slots.
+             * Property that holds addresses of the real array slots.
              */
             std::unique_ptr<T*[]> array;
 
             /**
-             * Property that hold the metadata array.
+             * Property that holds the metadata array.
              * It contains:
              * - Size (1 x uint64_t)
              * - Control Bits (Size / 64 x uint64_t)
@@ -65,17 +65,17 @@ namespace Systic::System::Concurrency {
             std::unique_ptr<std::uint64_t[]> metadata;
 
             /**
-             * Property that hold the control bits.
+             * Property that holds the control bits.
              */
             std::uint64_t* controls;
 
             /**
-             * Property that hold the vacancy bits.
+             * Property that holds the vacancy bits.
              */
             std::uint64_t*  vacancy;
 
             /**
-             * Property that hold the size of the array
+             * Property that holds the size of the array
              */
             std::uint64_t* size;
 
@@ -202,7 +202,7 @@ namespace Systic::System::Concurrency {
         public:
             /**
              * @MethodKind Cold
-             * Constructor that initialize the array with the given size.
+             * Constructor that initializes the array with the given size.
              * @param size The size of the array.
              * @throws std::bad_alloc if the array cannot be allocated.
              */
@@ -244,7 +244,7 @@ namespace Systic::System::Concurrency {
 
             /**
              * @MethodKind Hot
-             * Peek at an item without copying it and with no other thread modify it.
+             * Peek at an item without copying it and with no other thread modifying it.
              * The pointer 'slot' is guaranteed to be valid ONLY during the callback.
              */
             template <typename ReturnType, typename Func>
