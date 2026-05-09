@@ -1,6 +1,6 @@
 #pragma once
 #include <benchmark/benchmark.h>
-#include <systic/system/concurrency/SlotThreadSafe.hpp>
+import Systic.System.Concurrency;
 #include "BenchmarkTestSlot.hpp"
 #include <cstddef>
 
@@ -9,7 +9,7 @@ namespace Systic::System::Concurrency::Benchmarks {
     class SlotBenchFixture : public benchmark::Fixture {
     public:
         // Use a static instance to share across threads in one process run.
-        static SlotThreadSafe<BenchmarkTestSlot<SLOT_SIZE>> safeArray(ARRAY_SIZE);
+        inline static SlotThreadSafe<BenchmarkTestSlot<SLOT_SIZE>> safeArray{ARRAY_SIZE};
         BenchmarkTestSlot<SLOT_SIZE>* sampleSlot = new BenchmarkTestSlot<SLOT_SIZE>();
     };
 }
