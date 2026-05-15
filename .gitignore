@@ -1,0 +1,25 @@
+# CMake / Conan generated build directories
+.build/
+.build-*/
+
+# Conan generated per-user file
+CMakeUserPresets.json
+
+# Artifacts outputted by testing & benchmarking
+test_results.xml
+bench_results.json
+
+# IDE and Editor configurations
+.idea/
+cmake-build-*/
+.vscode/
+
+# Environment variables
+.env
+
+# Compiled objects or binaries that might accidentally leak out
+*.o
+*.a
+*.so
+*.dylib
+*.exe
