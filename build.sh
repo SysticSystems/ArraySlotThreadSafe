@@ -309,7 +309,7 @@ if [[ "$PHASE" == "Publish" ]]; then
 
     # 5. Build Package Reference String and Push Upstream
     FULL_PACKAGE_REF="${PKG_NAME}/${PKG_VERSION}@${CONAN_PACKAGE_USER}/${CONAN_PACKAGE_CHANNEL}"
-    
+
     log_info "Uploading fully compiled packages & recipe to server..."
     conan upload "${FULL_PACKAGE_REF}" --remote="${CONAN_REMOTE_NAME}" --confirm
 
