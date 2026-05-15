@@ -1,12 +1,11 @@
 FROM alpine:edge
 
-# Install tools - explicitly targeting the versioned package
+# Install tools - removed alpine's ninja package
 RUN apk update && apk add --no-cache \
     clang21 \
     clang21-extra-tools \
     compiler-rt \
     cmake \
-    ninja \
     py3-pip \
     pipx \
     bash \
@@ -14,14 +13,16 @@ RUN apk update && apk add --no-cache \
     build-base
 
 # Protocol Handshake: Force system-wide recognition of clang-21
-# Alpine often puts these in /usr/bin/ or requires explicit versioned calls
 RUN ln -sf /usr/bin/clang-21 /usr/bin/clang && \
     ln -sf /usr/bin/clang++-21 /usr/bin/clang++ && \
     ln -sf /usr/bin/clang-21 /usr/bin/cc && \
     ln -sf /usr/bin/clang++-21 /usr/bin/c++
 
-# Isolated Conan setup
-RUN pipx install conan
+# Isolated Conan & Modern Ninja setup
+# Installing ninja via pipx guarantees version 1.11.x or 1.12.x
+RUN pipx install conan && \
+    pipx install ninja
+
 ENV PATH="/root/.local/bin:${PATH}"
 
 # Export variables for the build environment
