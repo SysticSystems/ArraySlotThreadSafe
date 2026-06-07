@@ -1,0 +1,31 @@
+# Vagrantfile
+Vagrant.configure("2") do |config|
+  # Use a super-lightweight, pure Alpine Linux box
+  config.vm.box = "generic/alpine319"
+
+  config.vm.provider "virtualbox" do |vb|
+    # Allocate real hardware resources for your stress tests
+    vb.cpus = 8
+    vb.memory = 4096 # 4GB is plenty for lean Alpine, leaving room for thread allocations
+
+    # Enable nested virtualization for hardware atomics optimization
+    vb.customize ["modifyvm", :id, "--hwvirtex", "on"]
+    vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+  end
+
+  # Provisioning: Lift the limits that break multi-threaded testing
+  config.vm.provision "shell", inline: <<-SHELL
+    # 1. Update package manager and install runner dependencies
+    apk update
+    apk add --no-cache bash libstdc++ libgcc curl icu-libs
+
+    # 2. Force the kernel to allow massive parallel processing (2**10 threads)
+    echo "root soft nproc 65535" >> /etc/security/limits.conf
+    echo "root hard nproc 65535" >> /etc/security/limits.conf
+    echo "* soft nproc 65535" >> /etc/security/limits.conf
+    echo "* hard nproc 65535" >> /etc/security/limits.conf
+
+    # Raise the maximum virtual memory map areas for thread allocations
+    sysctl -w vm.max_map_count=262144
+  SHELL
+end

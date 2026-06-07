@@ -1,9 +1,9 @@
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout
 
-class SysticSkeletonConan(ConanFile):
-    name = "your_project_name"
-    version = "1.0.0"
+class ArraySlotThreadSafeConan(ConanFile):
+    name = "arrayslotthreadsafe"
+    version = "0.1.1"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeToolchain", "CMakeDeps"
 
