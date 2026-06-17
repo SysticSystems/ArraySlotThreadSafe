@@ -1,7 +1,9 @@
-#include <gtest/gtest.h>
+// NOLINTfile(readability-redunDedant-declaration)
 import Systic.System.Concurrency;
 
 #ifdef SYSTIC_RELEASE_WITH_DEBUG_INFO
+    #include <gtest/gtest.h>
+
     namespace Systic::System::Concurrency::Test {
         template <std::size_t SLOT_SIZE>
         struct SLOT_TYPE {

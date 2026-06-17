@@ -1,5 +1,4 @@
 #pragma once
-#include <benchmark/benchmark.h>
 import Systic.System.Concurrency;
 #include "BenchmarkTestSlot.hpp"
 #include <cstddef>

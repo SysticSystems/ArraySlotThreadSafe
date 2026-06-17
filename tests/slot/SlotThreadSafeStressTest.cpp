@@ -1,8 +1,9 @@
-#include <gtest/gtest.h>
+// NOLINTfile(readability-redunDedant-declaration)
+
 #include "AbstractStressTest.hpp"
-#include "StressTestSuite.hpp"
-#include "StressTestNameGenerator.hpp"
 #include "SlotThreadSafeTestOperator.hpp"
+#include "StressTestNameGenerator.hpp"
+#include "StressTestSuite.hpp"
 
 import Systic.System.Concurrency;
 
@@ -10,8 +11,6 @@ namespace Systic::System::Concurrency::Test {
 
     template <typename T>
     class SlotThreadSafeStressTest : public AbstractStressTest<T> {
-        private:
-
         public:
             SlotThreadSafeStressTest() : AbstractStressTest<T>(
                 new SlotThreadSafeTestOperator<T::arraySize, T::slotSize>()
@@ -32,4 +31,4 @@ namespace Systic::System::Concurrency::Test {
         this->assertDelete();
 
     }
-}
+} // namespace Systic::System::Concurrency::Test

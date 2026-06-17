@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 #include <chrono>
 
 namespace Systic::System::Concurrency::Benchmarks {
