@@ -47,6 +47,7 @@ log_info "Launching Build: $PROJECT_NAME [$PHASE]"
 # Maps host to /workspace and ensures correct file ownership on host
 docker run --name "$CONTAINER_NAME" \
     --network host \
+    --security-opt seccomp=unconfined \
     -v "$(pwd):/workspace" \
     -v "$(pwd)/.conan/cache/$PHASE:/root/.conan2" \
     -w /workspace \

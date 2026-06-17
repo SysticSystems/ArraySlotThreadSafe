@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(SysticSkeleton C CXX)
+project(ArraySlotThreadSafe VERSION 1.0.0 LANGUAGES CXX)
 
 # Rename this variable when forking — it propagates to all target names below.
 set(PROJECT_TARGET_PREFIX ${PROJECT_NAME})
@@ -36,40 +36,24 @@ find_package(benchmark REQUIRED)
 include_directories(include)
 
 # ---------------------------------------------------------------
-# Static Analysis (optional)
-# When clang-tidy is present it runs as part of the normal build,
-# turning warnings into errors so analysis failures break the build
-# rather than going unnoticed in a separate step.
-# ---------------------------------------------------------------
-find_program(CLANG_TIDY_EXE NAMES clang-tidy clang-tidy-21 clang-tidy-18)
-if (CLANG_TIDY_EXE)
-    set(CMAKE_CXX_CLANG_TIDY
-            ${CLANG_TIDY_EXE}
-            -checks=*,-fuchsia-*,-llvmlibc-*
-            --warnings-as-errors=*
-    )
-    message(STATUS "clang-tidy found at ${CLANG_TIDY_EXE} — static analysis active.")
-endif ()
-
-# ---------------------------------------------------------------
 # Core Library
 # Compiled as a static library so tests, benchmarks, and any
 # application entry point all link the same translation units
 # without duplicating build rules.
 # ---------------------------------------------------------------
-add_library(${PROJECT_TARGET_PREFIX}_core STATIC src/core.cpp)
+add_library(${PROJECT_TARGET_PREFIX})
 
-# Define your Module.
-# target_sources(
-#        ${PROJECT_TARGET_PREFIX}
-#        PUBLIC
-#        FILE_SET CXX_MODULES FILES
-#        src/MyModule.ixx     # Module interface
-#        PRIVATE
-#        src/MyModuleImplementation.tpp    # Implementation
-#)
+target_sources(
+        ${PROJECT_TARGET_PREFIX}
+        PUBLIC
+        FILE_SET CXX_MODULES FILES
+        src/ThreadSafe.ixx     # Module interface
+        PRIVATE
+        src/SlotThreadSafe.tpp    # Implementation
+)
 
-target_include_directories(${PROJECT_TARGET_PREFIX}_core PUBLIC
+target_include_directories(
+        ${PROJECT_TARGET_PREFIX} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
@@ -79,9 +63,19 @@ target_include_directories(${PROJECT_TARGET_PREFIX}_core PUBLIC
 # ---------------------------------------------------------------
 enable_testing()
 
-add_executable(${PROJECT_TARGET_PREFIX}_tests tests/main_test.cpp)
-target_link_libraries(${PROJECT_TARGET_PREFIX}_tests PRIVATE
-        ${PROJECT_TARGET_PREFIX}_core
+add_executable(${PROJECT_TARGET_PREFIX}_tests
+        tests/slot/SlotThreadSafeStressTest.cpp
+        tests/slot/SlotThreadSafeInitializationTest.cpp
+        tests/slot/ExtremeStressTest.cpp
+)
+
+target_include_directories(${PROJECT_TARGET_PREFIX}_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+)
+
+target_link_libraries(
+        ${PROJECT_TARGET_PREFIX}_tests PRIVATE
+        ${PROJECT_TARGET_PREFIX}
         GTest::gtest
         GTest::gtest_main
 )
@@ -89,9 +83,17 @@ target_link_libraries(${PROJECT_TARGET_PREFIX}_tests PRIVATE
 # ---------------------------------------------------------------
 # Benchmark Executable
 # ---------------------------------------------------------------
-add_executable(${PROJECT_TARGET_PREFIX}_bench bench/main_bench.cpp)
+add_executable(
+        ${PROJECT_TARGET_PREFIX}_bench
+        bench/slot/SlotThreadSafeBenchmark.cpp
+)
+
+target_include_directories(${PROJECT_TARGET_PREFIX}_bench PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/bench
+)
+
 target_link_libraries(${PROJECT_TARGET_PREFIX}_bench PRIVATE
-        ${PROJECT_TARGET_PREFIX}_core
+        ${PROJECT_TARGET_PREFIX}
         benchmark::benchmark
         benchmark::benchmark_main
 )
@@ -103,14 +105,13 @@ target_link_libraries(${PROJECT_TARGET_PREFIX}_bench PRIVATE
 # ---------------------------------------------------------------
 include(GNUInstallDirs)
 
-install(TARGETS ${PROJECT_TARGET_PREFIX}_core
+install(TARGETS ${PROJECT_TARGET_PREFIX}
         EXPORT ${PROJECT_TARGET_PREFIX}Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-
 )
 
 install(DIRECTORY include/

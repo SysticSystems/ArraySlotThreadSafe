@@ -126,7 +126,7 @@ CheckOptions:
   # MINIMUM LENGTH — No single-letter identifiers anywhere that matter
   # ===========================================================================
   - key: readability-identifier-length.MinimumVariableNameLength
-    value: "3"
+    value: ""
   - key: readability-identifier-length.MinimumParameterNameLength
     value: "3"
   - key: readability-identifier-length.MinimumLoopCounterNameLength

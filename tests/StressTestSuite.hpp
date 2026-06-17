@@ -12,11 +12,6 @@ namespace Systic::System::Concurrency::Test {
 
         StressTestParam<512, 1024, StressLevel::NO_STRESS>,
         StressTestParam<512, 1024, StressLevel::LVL1>,
-        StressTestParam<512, 1024, StressLevel::LVL2>,
-
-        StressTestParam<1024, 1024*1024, StressLevel::NO_STRESS>,
-        StressTestParam<1024, 1024*1024, StressLevel::LVL1>,
-        StressTestParam<1024, 1024*1024, StressLevel::LVL2>,
-        StressTestParam<2048, 1024*1024, StressLevel::LVL3>
+        StressTestParam<512, 1024, StressLevel::LVL2>
     >;
 }

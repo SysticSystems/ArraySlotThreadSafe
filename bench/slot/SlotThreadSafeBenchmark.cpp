@@ -1,10 +1,11 @@
+#include "BenchmarkTestSlot.hpp"
 #include <benchmark/benchmark.h>
+
 import Systic.System.Concurrency;
-#include "SlotThreadSafeBenchmarkFixture.hpp"
 
 namespace Systic::System::Concurrency::Benchmarks {
     template <std::size_t ARRAY_SIZE, std::size_t SLOT_SIZE>
-    void BM_SlotThreadSafe_AddRemove(benchmark::State& state) {
+    void static BM_SlotThreadSafe_AddRemove(benchmark::State& state) {
         SlotThreadSafe<BenchmarkTestSlot<SLOT_SIZE>> safeArray(ARRAY_SIZE);
         BenchmarkTestSlot<SLOT_SIZE> sampleSlot;
 
