@@ -3,7 +3,7 @@ from conan.tools.cmake import cmake_layout
 
 class ArraySlotThreadSafeConan(ConanFile):
     name = "arrayslotthreadsafe"
-    version = "0.1.1"
+    version = "0.4.0"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeToolchain", "CMakeDeps"
 
@@ -25,3 +25,8 @@ class ArraySlotThreadSafeConan(ConanFile):
 
     def build_requirements(self):
         pass
+
+    def package_info(self):
+        # Prevent Conan from assigning the default "include" dir 
+        # since we only expose C++20 modules.
+        self.cpp_info.includedirs = []

@@ -1,13 +1,19 @@
-#pragma once
+module;
 #include <atomic>
 #include <cstdint>
-#include <fstream>
 #include <bit>
-#include <iostream>
 #include <memory>
-#include <systic/system/concurrency/Pause.hpp>
+#include <unistd.h>
 
-namespace Systic::System::Concurrency {
+#ifndef NDEBUG
+#include <iostream>
+#endif
+
+export module Systic.System.Concurrency;
+
+import :CpuIntrinsics;
+
+export namespace Systic::System::Concurrency {
     /**
      * @class SlotThreadSafe
      * @tparam T The type of elements stored in the array.
@@ -31,7 +37,7 @@ namespace Systic::System::Concurrency {
 
      * @Algorithm Twisted Bit-Scanning (TBS)
          * 1. Density Packing: Vacancy managed via external bitset where 1 bit equals 1 slot, reducing metadata footprint by 98.4%.
-         * 2. Hardware Handshake: Vacancy discovery utilizes the Count Trailing Zeros (CTZ) instruction on inverted bitmasks.
+         * 2. Hardware Handshake: Vacancy discovery utilizes the Count Trailing Zeros (CTZ) instruction on inverted bitmasks (scanning from the Right/LSB).
          * 3. Atomic Claim: State changes are executed via atomic bitwise fetch_or/fetch_and to prevent global thread contention.
          * Cursor_Contention: We intentionally avoided a "global hint" or "next_available" cursor.
          * While a cursor could minimize search time to O(1), maintaining it would require
@@ -154,7 +160,7 @@ namespace Systic::System::Concurrency {
                         }
                     }
                     // Pause to prevent busy-waiting and to make cpu relax.
-                    Pause();
+                    Systic::System::Concurrency::Pause();
                 }
             }
 
@@ -281,7 +287,7 @@ namespace Systic::System::Concurrency {
             }
 
             /**
-             * @MethodKind Cold
+             * @MethodKind Hot
              * Get the size of the array.
              * @usage Internal : Use for unit testing only.
              * @return The size of the array.
@@ -289,8 +295,18 @@ namespace Systic::System::Concurrency {
             [[nodiscard]] const std::size_t *getSize() const {
                 return reinterpret_cast<const std::size_t*>(this->size);
             }
+
+            /**
+             * @MethodKind Hot
+             * Get the vacancy array.
+             * @usage Internal : Use for unit testing only.
+             * @return The vacancy array.
+             */
+            [[nodiscard]] const std::uint64_t *getVacancy() const {
+                return this->vacancy;
+            }
                 
-            #ifdef SYSTIC_RELEASE_WITH_DEBUG_INFO
+            #ifndef NDEBUG
                 /**
                  * @MethodKind Cold
                  * Get the metadata array.
@@ -307,14 +323,6 @@ namespace Systic::System::Concurrency {
                  */
                 [[nodiscard]] const std::uint64_t *getControls() const;
 
-                /**
-                 * @MethodKind Cold
-                 * Get the metadata array.
-                 * @usage Internal : Use for unit testing only.
-                 * @return The vacancy array.
-                 */
-                [[nodiscard]] const std::uint64_t *getVacancy() const;
-
                 friend std::ostream& operator<<(std::ostream& os, const SlotThreadSafe<T>& item) {
                     for (std::size_t i = 0; i < *item.getSize(); ++i) {
                         os << '[' << i << "=> (";
@@ -327,4 +335,6 @@ namespace Systic::System::Concurrency {
                 }
             #endif
     };
-}
+} // namespace Systic::System::Concurrency
+
+#include "SlotThreadSafe.tpp"

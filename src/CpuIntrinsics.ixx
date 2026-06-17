@@ -1,4 +1,4 @@
-#pragma once
+module;
 
 // Keep the includes outside the namespace to avoid polluting it
 #if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
@@ -8,6 +8,9 @@
 #else
     #include <thread>
 #endif
+
+export module Systic.System.Concurrency:CpuIntrinsics;
+
 
 namespace Systic::System::Concurrency {
 
