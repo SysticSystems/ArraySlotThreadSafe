@@ -1,99 +1,89 @@
-cmake_minimum_required(VERSION 3.28) # Bumped to 3.28+ for robust C++23 Module installations
-project(ArraySlotThreadSafe VERSION 0.4.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.28)
+project(arrayslotthreadsafe VERSION 0.4.0 LANGUAGES CXX)
 
-set(PROJECT_TARGET_PREFIX ${PROJECT_NAME})
-
-# ---------------------------------------------------------------
-# Language Standard & Module Scanning
-# ---------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
-# ---------------------------------------------------------------
-# Compiler Guard
-# ---------------------------------------------------------------
+option(BUILD_TESTING "Build the test suite" OFF)
+option(BUILD_BENCHMARKING "Build the benchmarks" OFF)
+
 if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    message(FATAL_ERROR
-            "This project requires Clang. Found: ${CMAKE_CXX_COMPILER_ID}. "
-            "Update your Conan profile or set CMAKE_CXX_COMPILER explicitly."
-    )
+    message(FATAL_ERROR "This project requires Clang. Found: ${CMAKE_CXX_COMPILER_ID}")
 endif ()
 
-# ---------------------------------------------------------------
-# Dependencies (Conan / CMakeDeps)
-# ---------------------------------------------------------------
-find_package(GTest REQUIRED)
-find_package(benchmark REQUIRED)
+if (NOT CMAKE_GENERATOR MATCHES "Ninja")
+    message(FATAL_ERROR "C++ module dependency scanning requires the Ninja generator. Use -G Ninja.")
+endif ()
 
 # ---------------------------------------------------------------
 # Core Modular Library
 # ---------------------------------------------------------------
-add_library(${PROJECT_TARGET_PREFIX})
+add_library(${PROJECT_NAME})
 
-target_sources(${PROJECT_TARGET_PREFIX}
+target_sources(${PROJECT_NAME}
     PUBLIC
-    FILE_SET CXX_MODULES FILES
-        src/CpuIntrinsics.ixx           # Module Partition (:CpuIntrinsics)
-        src/ArraySlotThreadSafe.ixx     # Primary Module Interface Gateway
+    FILE_SET CXX_MODULES
+    BASE_DIRS src
+    FILES
+        src/CpuIntrinsics.ixx
+        src/ArraySlotThreadSafe.ixx
+)
+
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
+
+# ---------------------------------------------------------------
+# EMBED SOURCE TEXT DIRECTLY INTO THE .PCM ARTIFACTS
+# This makes the BMIs totally self-contained and path-independent.
+# ---------------------------------------------------------------
+target_compile_options(${PROJECT_NAME} PUBLIC 
+    "-fmodules-embed-all-files"
 )
 
 # ---------------------------------------------------------------
-# Test Executable
+# Test & Benchmark Executables
 # ---------------------------------------------------------------
-enable_testing()
-
-add_executable(${PROJECT_TARGET_PREFIX}_tests
+if(BUILD_TESTING)
+    find_package(GTest REQUIRED)
+    enable_testing()
+    add_executable(${PROJECT_NAME}_tests
         tests/slot/SlotThreadSafeStressTest.cpp
         tests/slot/SlotThreadSafeInitializationTest.cpp
         tests/slot/ExtremeStressTest.cpp
-)
+    )
+    target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME} GTest::gtest GTest::gtest_main)
+endif()
 
-target_include_directories(${PROJECT_TARGET_PREFIX}_tests PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests
-)
-
-target_link_libraries(${PROJECT_TARGET_PREFIX}_tests PRIVATE
-        ${PROJECT_TARGET_PREFIX}        # Imports the module automatically!
-        GTest::gtest
-        GTest::gtest_main
-)
+if(BUILD_BENCHMARKING)
+    find_package(benchmark REQUIRED)
+    add_executable(${PROJECT_NAME}_bench bench/slot/SlotThreadSafeBenchmark.cpp)
+    target_link_libraries(${PROJECT_NAME}_bench PRIVATE ${PROJECT_NAME} benchmark::benchmark benchmark::benchmark_main)
+endif()
 
 # ---------------------------------------------------------------
-# Benchmark Executable
-# ---------------------------------------------------------------
-add_executable(${PROJECT_TARGET_PREFIX}_bench
-        bench/slot/SlotThreadSafeBenchmark.cpp
-)
-
-target_include_directories(${PROJECT_TARGET_PREFIX}_bench PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/bench
-)
-
-target_link_libraries(${PROJECT_TARGET_PREFIX}_bench PRIVATE
-        ${PROJECT_TARGET_PREFIX}        # Imports the module automatically!
-        benchmark::benchmark
-        benchmark::benchmark_main
-)
-
-# ---------------------------------------------------------------
-# Installation (Purely Modular)
+# Installation
 # ---------------------------------------------------------------
 include(GNUInstallDirs)
 
-# Install the static binary and the generated Binary Module Interfaces (.pcm paths)
-install(TARGETS ${PROJECT_TARGET_PREFIX}
-        EXPORT ${PROJECT_TARGET_PREFIX}Targets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_TARGET_PREFIX}
+install(TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}Targets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cxx-modules
 )
 
-# Physically write the export metadata targets config to disk
-install(EXPORT ${PROJECT_TARGET_PREFIX}Targets
-        FILE ${PROJECT_TARGET_PREFIX}Targets.cmake
-        NAMESPACE ${PROJECT_TARGET_PREFIX}::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_TARGET_PREFIX}
+install(EXPORT ${PROJECT_NAME}Targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+    CXX_MODULES_DIRECTORY cxx-modules
+)
+
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+"include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n"
+)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
