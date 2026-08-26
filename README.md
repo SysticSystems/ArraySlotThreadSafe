@@ -1,95 +1,100 @@
-# Systic C++ Skeleton
+# ArraySlotThreadSafe
 
-A starting point for C++23 projects where build reproducibility and honest benchmark numbers matter. Clone it, rename things, write code.
+A header-only C++20 thread-safe array slot manager. It tracks slot allocation state using lock-free bitmask operations, offering deterministic lookup and zero heap allocations during operation.
 
----
+## Key Features
 
-## What this is ?
-
-A template repository that wires up the build toolchain, test framework, and benchmark harness so you don't have to. It gives you a working project structure, a containerised build pipeline, and a CI workflow that publishes real test and benchmark results — nothing more.
-
-It does not impose an architecture, a logging strategy, a memory allocator, or any application-level opinions. Those are your problem.
-
----
-
-## Toolchain constraints
-
-Using this skeleton ties you to the following:
-
-| Concern | Choice |
-|---|---|
-| Language standard | C++23 (enforced by Conan) |
-| Compiler | Clang 21 |
-| Dependency manager | Conan 2.0 |
-| Build system | CMake + Ninja (system-provided via Alpine) |
-| Unit / integration tests | GoogleTest 1.14.0 |
-| Benchmarks | Google Benchmark 1.8.3 |
-| Build container base | Alpine Edge (musl libc) |
-
-Changing the compiler or standard means updating both the Conan profile under `.conan/profiles/` and the `configure()` block in `conanfile.py`. Everything else is replaceable.
+* **Bitmask Metadata:** Tracks slot availability at 1 bit per slot (8 bytes per 64 slots).
+* **Lock-Free Allocations:** Uses `std::atomic_ref` with C++20 bit-scanning hardware intrinsics (`std::countr_zero` / `std::countl_zero`).
+* **Cache-Aware:** Metadata for up to 512 slots fits within a single 64-byte L1 cache line. Larger slot counts naturally spread across multiple cache lines with zero memory waste.
+* **Header-Only:** Zero external dependencies beyond standard C++20 toolchains.
 
 ---
+## Technical Overview
 
-## Project layout
+The container separates memory into packed bitmasks (`vacancy`) and actual data payload slots (`array`). Claiming a slot requires mutating the bitmask via an atomic compare-and-swap (CAS) operation before taking ownership of the slot index.
 
-```
-include/    public headers
-src/        implementation
-tests/      GTest suites
-bench/      Google Benchmark cases
-.conan/     Conan hardware profiles
-.github/    CI workflow definitions
+```mermaid
+flowchart TD
+   A[Start: add / findVacantSlot] --> B[Load 64-Bit Vacancy Word<br/>std::atomic_ref memory_order_relaxed]
+   B --> C{Vacancy Bits == ~0ULL?<br/>All 64 slots occupied}
+
+C -- Yes --> D[Advance to Next 64-Bit Chunk]
+D --> B
+
+C -- No --> E[Bit-Scan for Vacant Slot<br/>std::countr_zero / std::countl_zero]
+E --> F[Generate Bitmask<br/>1ULL << relativeIndex]
+F --> G[Atomic CAS<br/>compare_exchange_weak acquire]
+
+G -- Success --> H[Mark Bit Occupied]
+H --> I[Assign Payload to array index]
+I --> J[Return Slot Index]
+
+G -- Failed Contention --> B
 ```
 
+## Memory & Cache Behavior
+
+* **≤ 512 Slots:** The entire 64-byte vacancy bitmask fits within a single L1 CPU cache line. This provides maximum single-thread lookup performance and minimal memory footprint. Under heavy multi-thread write contention, cache-coherency invalidations (MESI) cap write throughput to the hardware ceiling of a single line (~1.8M ops/sec).
+* **> 512 Slots:** Metadata naturally spans across multiple 64-byte cache lines. Concurrent writes partition across distinct cache line addresses, reducing invalidation collisions without requiring memory-wasting alignment padding.
+```mermaid
+flowchart LR
+   subgraph Small [512 Slots: 64 Bytes Metadata]
+      direction TB
+      L0[Single L1 Cache Line<br/>Chunks 0..7]
+   end
+
+   subgraph Large [4096 Slots: 512 Bytes Metadata]
+      direction TB
+      CL0[Cache Line 0<br/>Chunks 0..7]
+      CL1[Cache Line 1<br/>Chunks 8..15]
+      CL2[Cache Lines 2..7<br/>Chunks 16..63]
+   end
+```
 ---
 
-## Building locally
+## Recommended Usage
 
-Docker is required. The `run-build.sh` script manages the container lifecycle and maps build artifacts back to the host.
+### Suitable For:
+* High-concurrency fixed-capacity resource pools (connection pools, thread pools, object freelists).
+* Environments requiring zero memory fragmentation and deterministic allocation costs.
+* Workloads prioritizing minimal metadata memory footprint over artificial padding.
 
-```sh
-./run-build.sh Dev        # build + compile-db for IDE indexing
-./run-build.sh Testing    # build, run tests, run benchmarks
-./run-build.sh Release    # optimised build
-./run-build.sh Fix        # auto-fix clang-tidy violations (requires Dev build first)
+### Not Recommended For:
+* Dynamically resizable collections (capacity must be known at initialization).
+* Multi-gigabyte sparse collections where dynamic sparse trees are better suited.
+---
+
+## Quick Example
+```cpp
+import Systic.System.Concurrency.SlotThreadSafe;
+#include <iostream>
+
+int main() {
+    // 512 slots capacity
+    ArraySlotThreadSafe<MyResource, 512> pool;
+
+    // Thread-safe allocation
+    auto resource = std::make_unique<MyResource>();
+    auto result = pool.add(std::move(resource));
+
+    if (result.status == SlotOperationStatus::Success) {
+        std::size_t slotIndex = result.value;
+        std::cout << "Allocated slot: " << slotIndex << "\n";
+
+        // Free slot
+        pool.removeAt(slotIndex);
+    }
+
+    return 0;
+}
 ```
 
-If you want to build directly on the host, install Conan 2, CMake, Ninja, and Clang 21, then run `build.sh`.
-
----
-
-## CI: test and benchmark results
-
-The GitHub Actions workflow runs on a **bare-metal self-hosted runner**. This is intentional — shared cloud runners introduce scheduling jitter and variable CPU states that make benchmark numbers meaningless. Results from a real machine are surfaced directly in the Actions summary of each run: test pass/fail counts and benchmark timings are posted there so regressions are visible without digging through logs.
-
-> If you fork this and use GitHub-hosted runners, benchmark numbers will not be comparable across runs. Use them only as smoke tests until you wire up a bare-metal runner of your own.
-
----
-# Getting Started
-
-## System Requirements
-
-- **Docker** (any recent version with BuildKit support)
-- **~2 GB free disk space** for the Alpine Edge image and Conan/build cache
-
-## Setup
-
-1. Copy the environment file and fill in your values:
-   ```sh
-   cp .example.env .env
-   ```
-
-2. Edit `conanfile.py` — at minimum update the `name` and `version` fields to match your project.
-
-3. Review or replace the Conan profile under `.conan/profiles/`. The default targets a specific arch and compiler path — adjust it to match your machine. If you add a new profile file, update `build.sh` accordingly so it picks up the right profile name.
-
-## Run
-
-```sh
-./run-build.sh Dev        # build + compile-db for IDE indexing
-./run-build.sh Testing    # build, run tests and benchmarks
-./run-build.sh Release    # optimised build
-./run-build.sh Fix        # auto-fix clang-tidy violations (requires Dev build first)
+## Building and Tests
+Requires a C++20 compatible compiler (GCC 11+, Clang 13+, MSVC 2019+).
+```cpp
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+ctest --output-on-failure
 ```
-
-Artifacts are mapped back to your host by the script on completion.

@@ -9,7 +9,7 @@ module;
     #include <thread>
 #endif
 
-export module Systic.System.Concurrency:CpuIntrinsics;
+export module Systic.System.Concurrency.SlotThreadSafe:CpuIntrinsics;
 
 
 namespace Systic::System::Concurrency {

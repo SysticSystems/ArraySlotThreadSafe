@@ -6,9 +6,12 @@
  * for exemple for LVL1 , number of threads = 2^6.
  *
  */
-enum class StressLevel : int {
+namespace Systic::System::Concurrency::Test {
+    enum class StressLevel : int {
     NO_STRESS = 1,
     LVL1 = 6,
     LVL2 = 8,
     LVL3 = 10
 };
+}
+

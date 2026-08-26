@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <atomic>
 #include <chrono>
 
 namespace Systic::System::Concurrency::Test {
@@ -35,7 +36,7 @@ namespace Systic::System::Concurrency::Test {
             return *this;
         }
 
-#ifdef SYSTIC_RELEASE_WITH_DEBUG
+#ifdef NDEBUG
         friend std::ostream& operator<<(std::ostream& os, const TestSlot& slot) {
             for (std::size_t i = 0; i < SLOT_SIZE; ++i) {
                 if (i > 0) {

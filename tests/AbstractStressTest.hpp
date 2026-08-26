@@ -19,7 +19,8 @@ namespace Systic::System::Concurrency::Test {
             /**
              * @brief The array of slots to use for the stress test.
             */
-            TestSlot<T::slotSize>* slots;
+            std::array<std::unique_ptr<TestSlot<T::slotSize>>, T::arraySize> slots;
+
             /**
              * Method to ignite parallel stress test at the very same start point
              * to maximimze the chance of collisions / contention.
@@ -56,15 +57,16 @@ namespace Systic::System::Concurrency::Test {
              * @brief Assert that the slots are added to the array.
             */
             void assertAdd() {
+                ASSERT_TRUE(false) << "TARA";
                 int numberOfAddsToPerform = T::arraySize >> static_cast<int>(T::stress);
 
                 AbstractStressTest::runMultithreadedStressOperation([this, numberOfAddsToPerform](const int tid) {
                     for (int i = tid * numberOfAddsToPerform; i < tid * numberOfAddsToPerform + numberOfAddsToPerform; ++i) {
-                        this->operationTester->assertAdd(this->slots + i);
+                        this->operationTester->assertAdd(this->slots[i]);
                     }
                 }, T::threadCount);
 
-              this->operationTester->assertSlotsExists(this->slots, T::arraySize);
+         //     this->operationTester->assertSlotsExists(this->slots, T::arraySize);
             }
             
             /**

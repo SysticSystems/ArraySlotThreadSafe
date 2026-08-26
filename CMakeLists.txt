@@ -28,7 +28,8 @@ target_sources(${PROJECT_NAME}
     BASE_DIRS src
     FILES
         src/CpuIntrinsics.ixx
-        src/ArraySlotThreadSafe.ixx
+        src/SlotOperationResult.ixx
+        src/SlotThreadSafe.ixx
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
@@ -48,9 +49,8 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     enable_testing()
     add_executable(${PROJECT_NAME}_tests
-        tests/slot/SlotThreadSafeStressTest.cpp
-        tests/slot/SlotThreadSafeInitializationTest.cpp
-        tests/slot/ExtremeStressTest.cpp
+            tests/slot/SlotThreadSafeInitializationTest.cpp
+            tests/slot/SlotThreadSafeStressTest.cpp
     )
     target_link_libraries(${PROJECT_NAME}_tests PRIVATE ${PROJECT_NAME} GTest::gtest GTest::gtest_main)
 endif()

@@ -83,6 +83,7 @@ case "$PHASE" in
         OUT_DIR=".build-test"
         CMAKE_MODE="RelWithDebInfo"
         EXTRA_FLAGS="-O3 -g -DSYSTIC_FULL_ASSERT"
+        CMAKE_FEATURE_FLAGS="-DBUILD_TESTING=ON -DBUILD_BENCHMARKING=ON"
         ;;
     "Release")
         OUT_DIR=".build"
@@ -93,6 +94,7 @@ case "$PHASE" in
         OUT_DIR=".build-dev"
         CMAKE_MODE="Debug"
         EXTRA_FLAGS="-g -O0 -DSYSTIC_DEV_MODE"
+        CMAKE_FEATURE_FLAGS="-DBUILD_TESTING=ON -DBUILD_BENCHMARKING=ON"
         ;;
     "Fix")
         OUT_DIR=".build-dev"
@@ -183,7 +185,8 @@ if [[ "$PHASE" != "Fix" ]]; then
          -DCMAKE_CXX_COMPILER="$CXX" \
          -DCMAKE_C_COMPILER="$CC" \
          -DCMAKE_CXX_FLAGS="$EXTRA_FLAGS" \
-         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+         ${CMAKE_FEATURE_FLAGS:-}
 
     # Native System Compile execution
     log_info "Step 4: Compiling"
